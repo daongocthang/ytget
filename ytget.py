@@ -83,7 +83,7 @@ class YoutubeManager:
 
     def best_video(self):
         for s in self._only_video():
-            if s[2] == 'mp4' and s[0].progressive is True:
+            if s[2] == 'mp4' and s[0].is_progressive:
                 self._select(s)
                 return self
 
@@ -110,9 +110,9 @@ def render_progress_bar(bytes_recv, filesize, ch='\u258c', scale=0.55):
     remaining = max_width - filled
     progress_bar = ch * filled + ' ' * remaining
     percent = round(100.0 * bytes_recv / float(filesize), 1)
-    print('\r {p}% |{ch}| {recv:.3f}MB/{size:.3f}MB'.format(ch=progress_bar,
-                                                            p=percent, recv=bytes_recv / 1048576,
-                                                            size=filesize / 1048576), end='\r')
+    print('\r {p}% |{ch}| {recv:.3f}MB/{size:.3f}MB '.format(ch=progress_bar,
+                                                             p=percent, recv=bytes_recv / 1048576,
+                                                             size=filesize / 1048576), end='\r')
     sys.stdout.flush()
 
 
@@ -126,7 +126,7 @@ def main(args):
     url = args.url
     # TODO: assert URL is not None
 
-    path = os.path.dirname(os.path.realpath(__file__))
+    path = os.path.dirname(os.path.realpath(__file__)) if not args.d else args.d
 
     print('[+] loading video... ', end='')
     try:
@@ -165,6 +165,7 @@ def main(args):
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('url')
+    parser.add_argument('-d', metavar='DIR')
     parser.add_argument('-s', action='store_true')
     parser.add_argument('-a', action='store_true')
     parser.add_argument('-b', action='store_true')
