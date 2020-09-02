@@ -3,25 +3,22 @@ import html
 import os
 import re
 import shutil
+import subprocess
 import sys
 
-from pytube import Stream
-from pytube import YouTube
+try:
+    from pytube import Stream, YouTube, Playlist
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'pytube3'])
+    print("Oops! Please try again.")
+    sys.exit(-1)
 
 
 class YoutubeManager:
 
     def __init__(self, url):
         self._yt, self._streams = self._fetch_all(url)
-        self._sel = None  # type:Stream
-        self._inf = {}
-
-    def _select(self, s):
-        self._sel = s[0]
-        self._inf['type'] = s[1]
-        self._inf['format'] = s[2]
-        self._inf['quality'] = s[3]
-        self._inf['size'] = s[4]
+        self._sel = None
 
     @staticmethod
     def _fetch_all(url):
@@ -31,18 +28,23 @@ class YoutubeManager:
         for s in all_streams:
             quality = s.resolution if s.resolution else s.abr
             if quality:
-                results.append(
-                    (s, s.type, s.mime_type.split('/')[-1], quality, '{:.2f}MB'.format(s.filesize / 1048576)))
+                results.append((
+                    s,
+                    {
+                        'itag': s.itag,
+                        'type': s.type,
+                        'format': s.mime_type.split('/')[-1],
+                        'quality': quality,
+                        'size': '{:.2f}MB'.format(s.filesize / 1048576),
+                        'progressive': 'available' if s.is_progressive else ''
+                    }
+                ))
 
         return yt, results
 
     @property
     def filename(self):
         return self._sanity_filename(self.title)
-
-    @property
-    def streaminfo(self):
-        return self._inf
 
     @property
     def title(self):
@@ -64,32 +66,34 @@ class YoutubeManager:
     def _only_video(self):
         res = []
         for s in self.streams:
-            if s[1] == 'video':
+            if s[1]['type'] == 'video':
                 res.append(s)
-        return sorted(res, key=lambda a: int(a[3][:-1]), reverse=True)
+        return sorted(res, key=lambda a: int(a[1]['quality'][:-1]), reverse=True)
 
     def _only_audio(self):
         res = []
         for s in self.streams:
-            if s[1] == 'audio':
+            if s[1]['type'] == 'audio':
                 res.append(s)
-        return sorted(res, key=lambda a: int(a[3][:-4]), reverse=True)
+        return sorted(res, key=lambda a: int(a[1]['quality'][:-4]), reverse=True)
 
     def best_audio(self):
         for s in self._only_audio():
-            if s[2] == 'mp4':
-                self._select(s)
+            if s[1]['format'] == 'mp4':
+                self._sel = s
                 return self
 
     def best_video(self):
         for s in self._only_video():
-            if s[2] == 'mp4' and s[0].is_progressive:
-                self._select(s)
+            if s[1]['format'] == 'mp4' and s[1]['progressive'] == 'available':
+                self._sel = s
                 return self
 
-    def stream_at(self, idx):
-        s = self.streams[idx]
-        self._select(s)
+    def stream_at(self, itag):
+        for s in self.streams:
+            if s[1]['itag'] == itag:
+                self._sel = s
+                break
         return self
 
     def download(self, path, on_progress=None):
@@ -100,16 +104,16 @@ class YoutubeManager:
             # function=on_progress,args=(stream: Stream, chunk: bytes, bytes_remaining: int)
             self._yt.register_on_progress_callback(on_progress)
 
-        self._sel.download(path, self._sanity_filename(self.title))
+        self._sel[0].download(path, self._sanity_filename(self.title))
 
 
-def render_progress_bar(bytes_recv, filesize, ch='\u258c', scale=0.55):
+def render_progress_bar(bytes_recv, filesize, ch='\u258c', scale=0.85):
     cols = shutil.get_terminal_size().columns
     max_width = int(cols * scale)
     filled = int(round(max_width * bytes_recv / float(filesize)))
     remaining = max_width - filled
     progress_bar = ch * filled + ' ' * remaining
-    percent = round(100.0 * bytes_recv / float(filesize), 1)
+    percent = int(round(100.0 * bytes_recv / float(filesize), 1))
     print('\r {p}% |{ch}| {recv:.3f}MB/{size:.3f}MB '.format(ch=progress_bar,
                                                              p=percent, recv=bytes_recv / 1048576,
                                                              size=filesize / 1048576), end='\r')
@@ -122,9 +126,22 @@ def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int):
     render_progress_bar(bytes_recv, filesize, scale=0.1)
 
 
-def main(args):
-    url = args.url
-    # TODO: assert URL is not None
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('url')
+    parser.add_argument('-d', metavar='DIR')
+    parser.add_argument('-s', action='store_true')
+    parser.add_argument('-a', action='store_true')
+    parser.add_argument('-b', action='store_true')
+    parser.add_argument('-n', type=int)
+
+    args = parser.parse_args()
+
+    url = args.url.strip()
+
+    if not url or 'youtube' not in url:
+        parser.print_help()
+        return
 
     path = os.path.dirname(os.path.realpath(__file__)) if not args.d else args.d
 
@@ -137,10 +154,15 @@ def main(args):
 
         if args.s:
 
-            header = ['stream', 'type', 'format', 'quality', 'size']
-            print('{h[0]:10}{h[1]:10}{h[2]:10}{h[3]:10}{h[4]:10}'.format(h=header))
-            for i, data in enumerate(mgr.streams):
-                print('{:10}{d[1]:10}{d[2]:10}{d[3]:10}{d[4]:10}'.format(str(i), d=data))
+            header = ['itag', 'type', 'format', 'quality', 'size', 'progressive']
+            print('{h[0]:10}{h[1]:10}{h[2]:10}{h[3]:10}{h[4]:10}{h[5]:10}'.format(h=header))
+            print('-' * 60)
+            for stream in mgr.streams:
+                s = stream[1]
+                print(
+                    '{:<10}{:10}{:10}{:10}{:10}{:10}'.format(s['itag'], s['type'], s['format'], s['quality'],
+                                                             s['size'],
+                                                             s['progressive']))
 
             return
 
@@ -159,19 +181,8 @@ def main(args):
         print('\ndone')
     except Exception as e:
         print('fail')
-        print('[!] {}'.format(e))
-
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('url')
-    parser.add_argument('-d', metavar='DIR')
-    parser.add_argument('-s', action='store_true')
-    parser.add_argument('-a', action='store_true')
-    parser.add_argument('-b', action='store_true')
-    parser.add_argument('-n', type=int)
-    return parser.parse_args()
+        print('[-] {}'.format(e))
 
 
 if __name__ == '__main__':
-    main(get_args())
+    main()
