@@ -38,7 +38,7 @@ class YoutubeManager:
                         'format': s.mime_type.split('/')[-1],
                         'quality': quality,
                         'size': '{:.2f}MB'.format(s.filesize / 1048576),
-                        'progressive': 'available' if s.is_progressive else ''
+                        'progressive': 'true' if s.is_progressive else ''
                     }
                 ))
 
@@ -87,7 +87,7 @@ class YoutubeManager:
 
     def best_video(self):
         for s in self._only_video():
-            if s[1]['format'] == 'mp4' and s[1]['progressive'] == 'available':
+            if s[1]['format'] == 'mp4' and s[1]['progressive'] == 'true':
                 self._sel = s
                 return self
 
@@ -109,7 +109,7 @@ class YoutubeManager:
         self._sel[0].download(path, self._sanity_filename(self.title))
 
 
-def render_progress_bar(bytes_recv, filesize, ch='\u2587', scale=0.55):
+def render_progress_bar(bytes_recv, filesize, ch='\u258c', scale=0.55):
     cols = shutil.get_terminal_size().columns
     max_width = int(cols * scale)
     filled = int(round(max_width * bytes_recv / float(filesize)))
@@ -129,13 +129,17 @@ def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('url')
-    parser.add_argument('-d', metavar='DIR')
-    parser.add_argument('-s', action='store_true')
-    parser.add_argument('-a', action='store_true')
-    parser.add_argument('-b', action='store_true')
-    parser.add_argument('-n', type=int)
+    """Youtube download tool"""
+
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument('url', help='Youtube video URL to download')
+    parser.add_argument('-o', metavar='PATH',
+                        help='output path for writing media file (default to the current working directory)')
+    parser.add_argument('-s', action='store_true', help='display available streams')
+    parser.add_argument('-a', action='store_true', help='download the best quality audio (ignore -n)')
+    parser.add_argument('-b', action='store_true', help='download the best quality video (ignore -n)')
+    parser.add_argument('-n', metavar='N', type=int,
+                        help='specify stream to download by stream number (use -s to list available streams)')
 
     args = parser.parse_args()
 
@@ -145,7 +149,7 @@ def main():
         parser.print_help()
         return
 
-    path = os.path.dirname(os.path.realpath(__file__)) if not args.d else args.d
+    path = args.o
 
     print('[+] loading video... ', end='')
     try:
@@ -156,7 +160,7 @@ def main():
 
         if args.s:
 
-            header = ['itag', 'type', 'format', 'quality', 'size', 'progressive']
+            header = ['stream', 'type', 'format', 'quality', 'size', 'progressive']
             print('{h[0]:10}{h[1]:10}{h[2]:10}{h[3]:10}{h[4]:10}{h[5]:10}'.format(h=header))
             print('-' * 61)
             for stream in mgr.streams:
