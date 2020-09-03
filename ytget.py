@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import html
 import os
@@ -107,7 +109,7 @@ class YoutubeManager:
         self._sel[0].download(path, self._sanity_filename(self.title))
 
 
-def render_progress_bar(bytes_recv, filesize, ch='\u258c', scale=0.85):
+def render_progress_bar(bytes_recv, filesize, ch='\u2587', scale=0.55):
     cols = shutil.get_terminal_size().columns
     max_width = int(cols * scale)
     filled = int(round(max_width * bytes_recv / float(filesize)))
@@ -123,7 +125,7 @@ def render_progress_bar(bytes_recv, filesize, ch='\u258c', scale=0.85):
 def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int):
     filesize = stream.filesize
     bytes_recv = filesize - bytes_remaining
-    render_progress_bar(bytes_recv, filesize, scale=0.1)
+    render_progress_bar(bytes_recv, filesize, scale=0.4)
 
 
 def main():
@@ -139,7 +141,7 @@ def main():
 
     url = args.url.strip()
 
-    if not url or 'youtube' not in url:
+    if not url or 'youtu' not in url:
         parser.print_help()
         return
 
@@ -156,7 +158,7 @@ def main():
 
             header = ['itag', 'type', 'format', 'quality', 'size', 'progressive']
             print('{h[0]:10}{h[1]:10}{h[2]:10}{h[3]:10}{h[4]:10}{h[5]:10}'.format(h=header))
-            print('-' * 60)
+            print('-' * 61)
             for stream in mgr.streams:
                 s = stream[1]
                 print(
