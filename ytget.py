@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import argparse
 import html
-import os
 import re
 import shutil
 import subprocess
@@ -103,13 +102,13 @@ class YoutubeManager:
             raise Exception('cannot found any stream')
 
         if on_progress:
-            # function=on_progress,args=(stream: Stream, chunk: bytes, bytes_remaining: int)
+            """function=on_progress,args=(stream: Stream, chunk: bytes, bytes_remaining: int)"""
             self._yt.register_on_progress_callback(on_progress)
 
         self._sel[0].download(path, self._sanity_filename(self.title))
 
 
-def render_progress_bar(bytes_recv, filesize, ch='\u258c', scale=0.55):
+def render_progress_bar(bytes_recv, filesize, ch='\u2588', scale=0.55):
     cols = shutil.get_terminal_size().columns
     max_width = int(cols * scale)
     filled = int(round(max_width * bytes_recv / float(filesize)))
