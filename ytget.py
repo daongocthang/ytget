@@ -6,9 +6,11 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 
 try:
     from pytube import Stream, YouTube, Playlist
+    from pytube.monostate import OnProgress
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", 'pytube3'])
     print("Oops! Please try again.")
@@ -108,23 +110,32 @@ class YoutubeManager:
         self._sel[0].download(path, self._sanity_filename(self.title))
 
 
-def render_progress_bar(bytes_recv, filesize, ch='\u2588', scale=0.55):
-    cols = shutil.get_terminal_size().columns
-    max_width = int(cols * scale)
-    filled = int(round(max_width * bytes_recv / float(filesize)))
-    remaining = max_width - filled
-    progress_bar = ch * filled + ' ' * remaining
-    percent = int(round(100.0 * bytes_recv / float(filesize), 1))
-    print('\r {p}% |{ch}| {recv:.3f}MB/{size:.3f}MB '.format(ch=progress_bar,
-                                                             p=percent, recv=bytes_recv / 1048576,
-                                                             size=filesize / 1048576), end='\r')
-    sys.stdout.flush()
+class ProgressBar(OnProgress):
+    def __init__(self):
+        self._start_seconds = time.time()
 
+    def _render(self, bytes_recv, filesize, ch='\u2588', scale=0.55):
+        cols = shutil.get_terminal_size().columns
+        max_width = int(cols * scale)
+        filled = int(round(max_width * bytes_recv / float(filesize)))
+        remaining = max_width - filled
+        progress_bar = ch * filled + ' ' * remaining
+        percent = int(round(100.0 * bytes_recv / float(filesize), 1))
 
-def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int):
-    filesize = stream.filesize
-    bytes_recv = filesize - bytes_remaining
-    render_progress_bar(bytes_recv, filesize, scale=0.4)
+        megabytes_recv = bytes_recv / 1048576
+        elapsed_seconds = time.time() - self._start_seconds
+
+        print('\r {p}% |{ch}| {recv:.3f}MB/{size:.3f}MB [{spd:.3f}MB/sec]'.format(ch=progress_bar,
+                                                                                  p=percent, recv=megabytes_recv,
+                                                                                  size=filesize / 1048576,
+                                                                                  spd=megabytes_recv / elapsed_seconds),
+              end='\r')
+        sys.stdout.flush()
+
+    def __call__(self, stream: Stream, chunk: bytes, bytes_remaining: int):
+        filesize = stream.filesize
+        bytes_recv = filesize - bytes_remaining
+        self._render(bytes_recv, filesize, scale=0.25)
 
 
 def main():
@@ -181,6 +192,7 @@ def main():
             mgr.stream_at(args.n)
 
         print('[+] downloading... ')
+        on_progress = ProgressBar()
         mgr.download(path, on_progress)
 
         print('\ndone')
