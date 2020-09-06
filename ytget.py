@@ -125,11 +125,10 @@ class ProgressBar(OnProgress):
         megabytes_recv = bytes_recv / 1048576
         elapsed_seconds = time.time() - self._start_seconds
 
-        print('\r {p}% |{ch}| {recv:.3f}MB/{size:.3f}MB [{spd:.3f}MB/sec]'.format(ch=progress_bar,
+        sys.stdout.write('\r {p}% |{ch}| {recv:.3f}MB/{size:.3f}MB [{spd:.3f}MB/sec]'.format(ch=progress_bar,
                                                                                   p=percent, recv=megabytes_recv,
                                                                                   size=filesize / 1048576,
-                                                                                  spd=megabytes_recv / elapsed_seconds),
-              end='\r')
+                                                                                  spd=megabytes_recv / elapsed_seconds))
         sys.stdout.flush()
 
     def __call__(self, stream: Stream, chunk: bytes, bytes_remaining: int):
