@@ -1,20 +1,30 @@
-#!/usr/bin/python3
+#!/usr/bin/python
+'''
+Description:
+The command-line utility for downloading Youtube video or audio
+    
+Prerequisites:
+- "ffmpeg"
+    
+If the libraries are not installed just run the following command in your terminal:
+- On Linux(Ubuntu): apt-get install ffmpeg
+'''
 
 import argparse
 import html
 import re
 import shutil
-import subprocess
+import os
 import sys
 import time
 
-try:
-    from pytube import Stream, YouTube, Playlist
-    from pytube.monostate import OnProgress
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", 'pytube3'])
-    print("Oops! Please try again.")
-    sys.exit(-1)
+while True:
+    try:
+        from pytube import Stream, YouTube, Playlist
+        from pytube.monostate import OnProgress
+        break
+    except ImportError:
+        os.system('pip install pytube')
 
 
 class YoutubeManager:
@@ -47,7 +57,7 @@ class YoutubeManager:
 
     @property
     def filename(self):
-        return self._sanity_filename(self.title)
+        return self._sanity_filename(self._yt.title)
 
     @property
     def title(self):
@@ -64,7 +74,7 @@ class YoutubeManager:
     @staticmethod
     def _sanity_filename(s):
         s = html.unescape(s)
-        return re.sub(r'[\/:*?."<>|#]+', '', s)
+        return re.sub(r'[\/:*?.,"<>|#]+', '', s)
 
     def _only_video(self):
         res = []
@@ -138,8 +148,8 @@ class ProgressBar(OnProgress):
 
 
 def main():
-    """Youtube download tool"""
-
+    'Youtube download tool'
+    
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument('url', help='Youtube video URL to download')
     parser.add_argument('-o', metavar='PATH',
@@ -193,6 +203,14 @@ def main():
         print('[+] downloading... ')
         on_progress = ProgressBar()
         mgr.download(path, on_progress)
+        
+        if args.a:
+            print('[+] converting... ')
+            fname = os.path.join(path,mgr.filename)
+            tmpfile = os.path.join(path,'tmp')
+            os.rename(fname+'.mp4',tmpfile+'.mp4')
+            os.system(f'ffmpeg -i "{tmpfile}.mp4" "{fname}.mp3"')
+            os.remove(f'{tmpfile}.mp4')
 
         print('\ndone')
     except Exception as e:
