@@ -1,3 +1,2 @@
-pytube==9.6.4
 typing-extensions==3.7.4.2
 requests-html==0.10.0

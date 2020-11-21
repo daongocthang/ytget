@@ -22,6 +22,7 @@ while True:
     try:
         from pytube import Stream, YouTube, Playlist
         from pytube.monostate import OnProgress
+
         break
     except ImportError:
         os.system('pip install pytube')
@@ -136,9 +137,10 @@ class ProgressBar(OnProgress):
         elapsed_seconds = time.time() - self._start_seconds
 
         sys.stdout.write('\r {p}% |{ch}| {recv:.3f}MB/{size:.3f}MB [{spd:.3f}MB/sec]'.format(ch=progress_bar,
-                                                                                  p=percent, recv=megabytes_recv,
-                                                                                  size=filesize / 1048576,
-                                                                                  spd=megabytes_recv / elapsed_seconds))
+                                                                                             p=percent,
+                                                                                             recv=megabytes_recv,
+                                                                                             size=filesize / 1048576,
+                                                                                             spd=megabytes_recv / elapsed_seconds))
         sys.stdout.flush()
 
     def __call__(self, stream: Stream, chunk: bytes, bytes_remaining: int):
@@ -149,7 +151,7 @@ class ProgressBar(OnProgress):
 
 def main():
     'Youtube download tool'
-    
+
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument('url', help='Youtube video URL to download')
     parser.add_argument('-o', metavar='PATH',
@@ -168,7 +170,7 @@ def main():
         parser.print_help()
         return
 
-    path = args.o
+    path = args.o if args.o else os.getcwd()
 
     print('[+] loading video... ', end='')
     try:
@@ -203,19 +205,18 @@ def main():
         print('[+] downloading... ')
         on_progress = ProgressBar()
         mgr.download(path, on_progress)
-        
+
         if args.a:
-            print('[+] converting... ')
-            fname = os.path.join(path,mgr.filename)
-            tmpfile = os.path.join(path,'tmp')
-            os.rename(fname+'.mp4',tmpfile+'.mp4')
-            os.system(f'ffmpeg -i "{tmpfile}.mp4" "{fname}.mp3"')
+            print('\n[+] converting to mp3...')
+            fname = os.path.join(path, mgr.filename)
+            tmpfile = os.path.join(path, 'tmp')
+            os.rename(fname + '.mp4', tmpfile + '.mp4')
+            os.system(f'ffmpeg -i "{tmpfile}.mp4" "{fname}.mp3" -hide_banner')
             os.remove(f'{tmpfile}.mp4')
 
-        print('\ndone')
+        print('[+] done')
     except Exception as e:
-        print('fail')
-        print('[-] {}'.format(e))
+        print(f'[-] error: {e}')
 
 
 if __name__ == '__main__':
