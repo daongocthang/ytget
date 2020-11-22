@@ -172,11 +172,11 @@ def main():
 
     path = args.o if args.o else os.getcwd()
 
-    print('[+] loading video... ', end='')
+    print('[+] Loading video... ', end='')
     try:
         mgr = YoutubeManager(url)
 
-        print('done')
+        print('Done')
         print('[i] {}'.format(mgr.title))
 
         if args.s:
@@ -202,21 +202,23 @@ def main():
         if args.n:
             mgr.stream_at(args.n)
 
-        print('[+] downloading... ')
+        print('\n')
+        print(f'[+] Downloading @{mgr.selection[1]["itag"]}')
         on_progress = ProgressBar()
         mgr.download(path, on_progress)
 
         if args.a:
-            print('\n[+] converting to mp3...')
+            print('[+] Converting to mp3')
             fname = os.path.join(path, mgr.filename)
             tmpfile = os.path.join(path, 'tmp')
             os.rename(fname + '.mp4', tmpfile + '.mp4')
             os.system(f'ffmpeg -i "{tmpfile}.mp4" "{fname}.mp3" -hide_banner')
             os.remove(f'{tmpfile}.mp4')
 
-        print('[+] done')
+        print('[+] Download completed!')
     except Exception as e:
-        print(f'[-] error: {e}')
+        print('Fail')
+        print(f'[-] {e}')
 
 
 if __name__ == '__main__':
