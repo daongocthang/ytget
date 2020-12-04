@@ -211,6 +211,7 @@ def main():
             print('[+] Converting to mp3')
             f_name = os.path.join(path, mgr.filename)
             os.system(f'ffmpeg -i "{f_name}.mp4" "{f_name}.mp3" -hide_banner')
+            os.remove(f_name + '.mp4')
 
         print('[+] Download completed!')
     except Exception as e:
