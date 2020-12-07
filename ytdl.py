@@ -203,15 +203,16 @@ def main():
             mgr.stream_at(args.n)
 
         print('\n')
-        print(f'[+] Downloading @{mgr.selection[1]["itag"]}')
+        print(f'[+] Downloading @itag={mgr.selection[1]["itag"]}')
         on_progress = ProgressBar()
         mgr.download(path, on_progress)
 
         if args.a:
             print('[+] Converting to mp3')
             f_name = os.path.join(path, mgr.filename)
-            os.system(f'ffmpeg -i "{f_name}.mp4" "{f_name}.mp3" -hide_banner')
+            os.system(f'ffmpeg -i "{f_name}.mp4" "{f_name} [uncompleted].mp3" -hide_banner')
             os.remove(f_name + '.mp4')
+            os.rename(f'{f_name} [uncompleted].mp3', f_name + '.mp3')
 
         print('[+] Download completed!')
     except Exception as e:
