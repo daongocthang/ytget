@@ -3,19 +3,20 @@ import os
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', metavar='PATH', dest='output', default=os.getcwd())
+    parser.add_argument('-o', metavar='PATH', dest='output', default=None)
     parser.add_argument('--format', default='mp3')
     parser.add_argument('-y', dest='yes', action='store_true')
     parser.add_argument('input')
 
     args = parser.parse_args()
     try:
-        dest = args.output
+
         src = args.input
         f_name, f_ext = os.path.splitext(os.path.basename(src))
         fmt = args.format
 
-        dest = os.path.join(dest, '.'.join([f_name, fmt]))
+        path = args.output if args.output else os.path.dirname(os.path.abspath(src))
+        dest = os.path.join(path, '.'.join([f_name, fmt]))
 
         print(f'[+] Converting {f_ext.lstrip(".")} to {fmt}')
 
