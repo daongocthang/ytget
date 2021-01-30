@@ -21,8 +21,7 @@ import time
 while True:
     try:
         from pytube import Stream, YouTube, Playlist
-        from pytube.monostate import OnProgress
-
+        
         break
     except ImportError:
         os.system('pip install pytube')
@@ -121,7 +120,7 @@ class YoutubeManager:
         self._sel[0].download(path, self._sanity_filename(self.title))
 
 
-class ProgressBar(OnProgress):
+class ProgressBar():
     def __init__(self):
         self._start_seconds = time.time()
 
