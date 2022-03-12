@@ -207,7 +207,7 @@ def main():
         mgr.download(path, on_progress)
         f_name = os.path.join(path, mgr.filename)
         if os.path.isfile(f_name):
-            f_name = f_name + '.mp4'
+            os.rename(f_name + '.mp4')
 
         if args.a:
             print('[+] Converting to mp3')            
