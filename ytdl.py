@@ -205,10 +205,12 @@ def main():
         print(f'[+] Downloading @itag={mgr.selection[1]["itag"]}')
         on_progress = ProgressBar()
         mgr.download(path, on_progress)
+        f_name = os.path.join(path, mgr.filename)
+        if os.path.isfile(f_name):
+            f_name = f_name + '.mp4'
 
         if args.a:
-            print('[+] Converting to mp3')
-            f_name = os.path.join(path, mgr.filename)
+            print('[+] Converting to mp3')            
             os.system(f'ffmpeg -i "{f_name}.mp4" "{f_name} [uncompleted].mp3" -hide_banner')
             os.remove(f_name + '.mp4')
             os.rename(f'{f_name} [uncompleted].mp3', f_name + '.mp3')
